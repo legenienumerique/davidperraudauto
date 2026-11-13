@@ -7,7 +7,7 @@ import sys
 OUT = sys.argv[1] if len(sys.argv) > 1 else "."
 A = 'assets/'
 PH = A + 'ph/'
-V = 3  # cache : incrémenter à chaque changement de CSS ou JS
+V = 4  # cache : incrémenter à chaque changement de CSS ou JS
 TEL, TELH = '04 74 21 17 57', 'tel:0474211757'
 ADR = ('275 rue des Frères Lumière', '01400 Châtillon-sur-Chalaronne')
 MAPS = 'https://www.google.com/maps/search/?api=1&query=David+Perraud+Auto+275+rue+des+Fr%C3%A8res+Lumi%C3%A8re+Ch%C3%A2tillon-sur-Chalaronne'

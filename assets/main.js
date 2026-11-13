@@ -282,3 +282,78 @@
   f.querySelectorAll('.cov button').forEach(b => b.addEventListener('click', () => { f.querySelectorAll('.cov button').forEach(x => x.classList.remove('on')); b.classList.add('on'); }));
   const d = new Date().toISOString().slice(0, 10); f.querySelectorAll('input[type=date]').forEach(i => i.min = d);
 })();
+
+
+/* curseur : une bougie d'allumage qui lâche de petites étincelles bleues et jaunes (signature garage). */
+(() => {
+  const art = `<g transform="rotate(-35 15 15)"><rect x="12.2" y="1.5" width="5.6" height="4" rx="1" fill="#d9dde2" stroke="#111417" stroke-width="1.1"/><path d="M11.4 5.5h7.2l-.6 9h-6z" fill="#f4f1ea" stroke="#111417" stroke-width="1.1"/><path d="M11 14.5h8v4.2h-8z" fill="#b8bec6" stroke="#111417" stroke-width="1.1"/><path d="M11 16.6h8" stroke="#111417" stroke-width=".8"/><path d="M13.4 18.7h3.2v4.3h-3.2z" fill="#9aa1a9" stroke="#111417" stroke-width="1"/><path d="M15 23v3.2h2.4" fill="none" stroke="#111417" stroke-width="1.2" stroke-linecap="round"/></g>`;
+  const COLS = ['#ffd84a','#8fd3ff','#ffffff','#39a6ea'];
+  const makeFx = () => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return { step() {}, draw() {} };
+    const cv = document.createElement('canvas');
+    cv.className = 'fx'; cv.setAttribute('aria-hidden', 'true');
+    document.body.insertBefore(cv, document.body.firstChild);
+    const ctx = cv.getContext('2d');
+    let W = 0, H = 0, px = null, py = null, acc = 0, dirty = false;
+    const size = () => { const d = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight; cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0); };
+    size(); addEventListener('resize', size);
+    const gr = [], rnd = (a, b) => a + Math.random() * (b - a), G = 0;
+    const step = (x, y, now) => {
+      if (px === null) { px = x; py = y; return; }
+      const sp = Math.hypot(x - px, y - py); px = x; py = y;
+      if (sp < 1.2 || sp > 90) return;
+      acc += sp;
+      while (acc > 11) {
+        acc -= 11;
+        gr.push({ x: x + 12 + rnd(-2, 2), y: y + 20 + rnd(-2, 2), vx: G ? rnd(-.5, .5) : rnd(-1.6, 1.6), vy: G ? rnd(0, .6) : rnd(-1.4, 1.2), r: rnd(.7, G ? 2.2 : 1.7), c: COLS[(Math.random() * COLS.length) | 0], t: now, life: rnd(420, 820) });
+      }
+      if (gr.length > 220) gr.splice(0, gr.length - 220);
+    };
+    const draw = now => {
+      while (gr.length && now - gr[0].t > gr[0].life) gr.shift();
+      if (!gr.length) { if (dirty) { ctx.clearRect(0, 0, W, H); dirty = false; } return; }
+      dirty = true; ctx.clearRect(0, 0, W, H);
+      for (const g of gr) {
+        const a = now - g.t, k = a / g.life, e = Math.min(1, k * 3);
+        ctx.globalAlpha = (1 - k) * (1 - k);
+        ctx.fillStyle = g.c;
+        const gx = g.x + g.vx * 22 * e, gy = g.y + (G ? g.vy * 10 * e + G * a * a / 4000 : g.vy * 22 * e);
+        ctx.beginPath();
+        if (G) { ctx.ellipse(gx, gy, g.r * .8, g.r * 1.3, 0, 0, 6.2832); } else ctx.arc(gx, gy, g.r, 0, 6.2832);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    };
+    return { step, draw };
+  };
+  const start = () => {
+    const fx = makeFx();
+    const el = document.createElement('div');
+    el.className = 'trw'; el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = `<svg viewBox="0 0 30 30">${art}</svg>`;
+    document.body.append(el);
+    document.documentElement.classList.add('vc');
+    let tx = -99, ty = -99, x = tx, y = ty, shown = false;
+    addEventListener('pointermove', e => {
+      tx = e.clientX; ty = e.clientY;
+      if (!shown) { x = tx; y = ty; shown = true; el.classList.add('on'); }
+      el.classList.toggle('hot', !!(e.target.closest && e.target.closest('a,button,summary,input,select,textarea,label')));
+    }, { passive: true });
+    document.addEventListener('pointerleave', () => { el.classList.remove('on'); shown = false; });
+    const loop = () => {
+      x += (tx - x) * .35; y += (ty - y) * .35;
+      el.style.transform = `translate(${(x - 4).toFixed(1)}px,${(y - 3).toFixed(1)}px)`;
+      const now = performance.now();
+      if (shown) fx.step(x, y, now);
+      fx.draw(now);
+      requestAnimationFrame(loop);
+    };
+    loop();
+  };
+  addEventListener('pointermove', function f(e) {
+    if (e.pointerType !== 'mouse') return;
+    removeEventListener('pointermove', f);
+    start();
+    dispatchEvent(new PointerEvent('pointermove', { clientX: e.clientX, clientY: e.clientY, pointerType: 'mouse' }));
+  }, { passive: true });
+})();
